@@ -4,8 +4,12 @@ This project implements a Rails 7.2 JSON API for managing user notes, built full
 
 Core endpoints:
 
-- POST /api/v1/login for token-based authentication
-- GET /api/v1/notes, GET /api/v1/notes/:id, POST /api/v1/notes, PATCH /api/v1/notes/:id, DELETE /api/v1/notes/:id
+- POST /api/v1/login – Authenticates a user and returns a bearer token.
+- GET /api/v1/notes – Lists all notes belonging to the authenticated user.
+- GET /api/v1/notes/:id – Retrieves a single note owned by the authenticated user.
+- POST /api/v1/notes – Creates a new note for the authenticated user.
+- PATCH /api/v1/notes/:id – Updates a note’s title or body.
+- DELETE /api/v1/notes/:id – Deletes a note owned by the authenticated user.
 
 Every endpoint is covered by request specs validating:
 
