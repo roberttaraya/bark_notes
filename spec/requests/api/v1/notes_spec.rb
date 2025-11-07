@@ -1,16 +1,24 @@
 require "rails_helper"
 
 RSpec.describe "API::V1::Notes", type: :request do
-  let!(:user)  { User.create!(email: "robert@example.com", password: "this is my password") }
-  let!(:other) { User.create!(email: "zara@example.com", password: "this is zara's password") }
+  let!(:user)  { create(:user) }
+  let!(:other) { create(:user) }
 
-  before do
-    user.notes.create!(title: "T1", body: "B1")
-    user.notes.create!(title: "T2", body: "B2")
-    other.notes.create!(title: "X",  body: "Y")
+  let!(:user_notes) do
+    [
+      create(:note, user: user, title: "T1", body: "B1"),
+      create(:note, user: user, title: "T2", body: "B2")
+    ]
   end
+  let!(:others_note) { create(:note, user: other, title: "X", body: "Y") }
 
   def bearer(token) = "Bearer #{token}"
+
+  def json_headers(token = nil)
+    h = { "CONTENT_TYPE" => "application/json" }
+    h["Authorization"] = bearer(token) if token
+    h
+  end
 
   it "requires auth" do
     get "/api/v1/notes"
@@ -38,5 +46,51 @@ RSpec.describe "API::V1::Notes", type: :request do
     note = other.notes.create!(title: "Nope", body: "N/A")
     get "/api/v1/notes/#{note.id}", headers: { "Authorization" => bearer(user.api_token) }
     expect(response).to have_http_status(:not_found)
+  end
+
+  describe "POST /api/v1/notes" do
+    context "with valid params" do
+      let(:note_title) { "this is a new note" }
+      let(:note_body) { "this is the note body" }
+      let(:payload) { { title: note_title, body: note_body } }
+
+      it "creates a note for the current_user and returns 201 with id/title/body" do
+        expect {
+          post "/api/v1/notes", params: payload.to_json, headers: json_headers(user.api_token)
+        }.to change { Note.where(user_id: user.id).count }.by(1)
+
+        expect(response).to have_http_status(:created)
+        json = JSON.parse(response.body)
+        expect(json).to include("id", "title", "body")
+        expect(json["title"]).to eq(note_title)
+        expect(json["body"]).to  eq(note_body)
+
+        note = Note.find(json["id"])
+        expect(note.user_id).to eq(user.id)
+      end
+    end
+
+    context "with invalid params" do
+      let(:payload) { { title: "" } }
+
+      it "returns 422 with validation errors" do
+        expect {
+          post "/api/v1/notes", params: payload.to_json, headers: json_headers(user.api_token)
+        }.not_to change { Note.count }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json).to include("errors")
+        expect(json["errors"]).to include("title")
+        expect(json["errors"]["title"]).to be_present
+      end
+    end
+
+    context "without auth" do
+      it "returns 401" do
+        post "/api/v1/notes", params: { title: "X" }.to_json, headers: json_headers
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
   end
 end
