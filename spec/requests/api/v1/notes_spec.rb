@@ -148,6 +148,44 @@ RSpec.describe "API::V1::Notes", type: :request do
         expect(response).to have_http_status(:unauthorized)
       end
     end
+
+    context "with only title provided" do
+      let(:modified_title) { "change this title only" }
+      let!(:note) { user_notes.last }
+
+      it "updates just the title and keeps existing body" do
+        original_body = note.body
+        patch "/api/v1/notes/#{note.id}",
+              params: { title: modified_title }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:ok)
+        body = JSON.parse(response.body)
+        expect(body["title"]).to eq(modified_title)
+        expect(body["body"]).to  eq(original_body)
+        expect(note.reload.title).to eq(modified_title)
+        expect(note.body).to eq(original_body)
+      end
+    end
+
+    context "with only body provided" do
+      let(:modified_body) { "change the body only"}
+      let!(:note) { user_notes.first }
+
+      it "updates just the body and keeps original title" do
+        original_title = note.title
+        patch "/api/v1/notes/#{note.id}",
+              params: { body: modified_body }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:ok)
+        body = JSON.parse(response.body)
+        expect(body["title"]).to eq(original_title)
+        expect(body["body"]).to  eq(modified_body)
+        expect(note.reload.body).to eq(modified_body)
+        expect(note.title).to eq(original_title)
+      end
+    end
   end
 
   describe "DELETE /api/v1/notes/:id" do
