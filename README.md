@@ -2,6 +2,8 @@
 
 This project implements a Rails 7.2 JSON API for managing user notes, built fully TDD-style using RSpec and FactoryBot. It delivers complete, production-quality CRUD functionality with authenticated access via Bearer tokens.
 
+Review the [Readme](https://gist.github.com/brandonhilkert/76f8f273d33995762e04c48c38aa9c04)
+
 Core endpoints:
 
 - POST /api/v1/login – Authenticates a user and returns a bearer token.
