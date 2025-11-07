@@ -34,9 +34,9 @@ RSpec.describe User, type: :model do
       u = User.create!(email: "d@example.com", password: "pa&&word")
       n1 = u.notes.create!(title: "T1", body: "B1")
       n2 = u.notes.create!(title: "T2", body: "B2")
-      expect(u.notes).to match_array([n1, n2])
+      expect(u.notes).to match_array([ n1, n2 ])
       u.destroy
-      expect(Note.where(id: [n1.id, n2.id])).to be_empty
+      expect(Note.where(id: [ n1.id, n2.id ])).to be_empty
     end
   end
 end

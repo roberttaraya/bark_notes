@@ -169,7 +169,7 @@ RSpec.describe "API::V1::Notes", type: :request do
     end
 
     context "with only body provided" do
-      let(:modified_body) { "change the body only"}
+      let(:modified_body) { "change the body only" }
       let!(:note) { user_notes.first }
 
       it "updates just the body and keeps original title" do
