@@ -52,7 +52,7 @@ module Api
       end
 
       def find_note!
-        current_user.notes.find_by(id: params[:id])
+        current_user.notes.find(params[:id])
       end
     end
   end
