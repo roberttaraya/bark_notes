@@ -93,4 +93,60 @@ RSpec.describe "API::V1::Notes", type: :request do
       end
     end
   end
+
+  describe "PATCH /api/v1/notes/:id" do
+    let!(:note) { user_notes.first }
+
+    context "with valid params" do
+      let(:note_title) { "this is a new note" }
+      let(:note_body) { "this is the note body" }
+
+      it "updates title and body for the current_user and returns 200" do
+        patch "/api/v1/notes/#{note.id}",
+              params: { title: note_title, body: note_body }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:ok)
+        body = JSON.parse(response.body)
+        expect(body["title"]).to eq(note_title)
+        expect(body["body"]).to  eq(note_body)
+        expect(note.reload.title).to eq(note_title)
+      end
+    end
+
+    context "with invalid params" do
+      it "returns 422 with validation errors" do
+        patch "/api/v1/notes/#{note.id}",
+              params: { title: "" }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        body = JSON.parse(response.body)
+        expect(body).to include("errors")
+        expect(body["errors"]).to include("title")
+      end
+    end
+
+    context "note is not the user's note" do
+      let!(:imposter) { create(:note, user: other, title: "is this right?", body: "no this is not right") }
+
+      it "returns 404" do
+        patch "/api/v1/notes/#{imposter.id}",
+              params: { title: "i got hacked" }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context "without auth" do
+      it "returns 401" do
+        patch "/api/v1/notes/#{note.id}",
+              params: { title: "no way" }.to_json,
+              headers: json_headers
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
 end
