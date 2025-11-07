@@ -17,7 +17,7 @@ module Api
         if note.save
           render json: note.as_json(only: [:id, :title, :body]), status: :created
         else
-          render json: { errors: note.errors.to_hash }, status: :unprocessable_entity
+          render json: { errors: note.errors.to_hash }, status: :unprocessable_content
         end
       end
 
@@ -28,7 +28,7 @@ module Api
         if note.update(note_params)
           render json: note.as_json(only: [:id, :title, :body]), status: :ok
         else
-          render json: { errors: note.errors.to_hash }, status: :unprocessable_entity
+          render json: { errors: note.errors.to_hash }, status: :unprocessable_content
         end
       end
 
