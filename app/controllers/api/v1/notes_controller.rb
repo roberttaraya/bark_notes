@@ -22,7 +22,7 @@ module Api
       end
 
       def update
-        note = current_user.notes.find_by(id: params[:id])
+        note = find_note!
         return head :not_found unless note
 
         if note.update(note_params)
@@ -33,7 +33,7 @@ module Api
       end
 
       def destroy
-        note = current_user.notes.find_by(id: params[:id])
+        note = find_note!
         return head :not_found unless note
 
         note.destroy!
@@ -49,6 +49,10 @@ module Api
 
       def note_params
         params.permit(:title, :body)
+      end
+
+      def find_note!
+        current_user.notes.find_by(id: params[:id])
       end
     end
   end
