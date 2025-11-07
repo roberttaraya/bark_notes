@@ -149,4 +149,28 @@ RSpec.describe "API::V1::Notes", type: :request do
       end
     end
   end
+
+  describe "DELETE /api/v1/notes/:id" do
+    let!(:note) { create(:note, user: user, title: "ive been deleted", body: "bye") }
+
+    it "deletes the note and returns 204 for current_user" do
+      expect {
+        delete "/api/v1/notes/#{note.id}", headers: json_headers(user.api_token)
+      }.to change { Note.where(user_id: user.id).count }.by(-1)
+
+      expect(response).to have_http_status(:no_content)
+      expect(response.body).to be_blank
+    end
+
+    it "returns 404 when deleting someone else's note" do
+      imposter = create(:note, user: other)
+      delete "/api/v1/notes/#{imposter.id}", headers: json_headers(user.api_token)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 401 without auth" do
+      delete "/api/v1/notes/#{note.id}", headers: json_headers
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
 end

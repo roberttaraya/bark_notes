@@ -32,6 +32,14 @@ module Api
         end
       end
 
+      def destroy
+        note = current_user.notes.find_by(id: params[:id])
+        return head :not_found unless note
+
+        note.destroy!
+        head :no_content
+      end
+
       private
 
       def set_note
