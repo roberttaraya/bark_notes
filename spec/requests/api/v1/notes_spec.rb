@@ -25,27 +25,40 @@ RSpec.describe "API::V1::Notes", type: :request do
     expect(response).to have_http_status(:unauthorized)
   end
 
-  it "lists only current user's notes" do
-    get "/api/v1/notes", headers: { "Authorization" => bearer(user.api_token) }
-    expect(response).to have_http_status(:ok)
-    titles = JSON.parse(response.body).map { |n| n["title"] }
-    expect(titles).to contain_exactly("T1", "T2")
+  describe "GET /api/v1/notes" do
+    it "lists only current user's notes" do
+      get "/api/v1/notes", headers: { "Authorization" => bearer(user.api_token) }
+      expect(response).to have_http_status(:ok)
+      titles = JSON.parse(response.body).map { |n| n["title"] }
+      expect(titles).to contain_exactly("T1", "T2")
+    end
   end
 
-  it "shows a single note" do
-    note = user.notes.first
-    get "/api/v1/notes/#{note.id}", headers: { "Authorization" => bearer(user.api_token) }
-    expect(response).to have_http_status(:ok)
-    body = JSON.parse(response.body)
-    expect(body["id"]).to eq(note.id)
-    expect(body["title"]).to eq(note.title)
-    expect(body["body"]).to eq(note.body)
-  end
+  describe "GET /api/v1/notes/:id" do
+    it "shows a single note" do
+      note = user.notes.first
+      get "/api/v1/notes/#{note.id}", headers: { "Authorization" => bearer(user.api_token) }
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["id"]).to eq(note.id)
+      expect(body["title"]).to eq(note.title)
+      expect(body["body"]).to eq(note.body)
+    end
 
-  it "404s for a note not owned by current user" do
-    note = other.notes.create!(title: "Nope", body: "N/A")
-    get "/api/v1/notes/#{note.id}", headers: { "Authorization" => bearer(user.api_token) }
-    expect(response).to have_http_status(:not_found)
+    it "404s for a note not owned by current user" do
+      note = other.notes.create!(title: "Nope", body: "N/A")
+      get "/api/v1/notes/#{note.id}", headers: { "Authorization" => bearer(user.api_token) }
+      expect(response).to have_http_status(:not_found)
+    end
+
+    context "when the note id does not exist" do
+      it "returns 404 via rescue_from without leaking errors" do
+        get "/api/v1/notes/999_999", headers: { "Authorization" => bearer(user.api_token) }
+
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)).to eq("error" => "not found")
+      end
+    end
   end
 
   describe "POST /api/v1/notes" do
@@ -186,6 +199,17 @@ RSpec.describe "API::V1::Notes", type: :request do
         expect(note.title).to eq(original_title)
       end
     end
+
+    context "when updating a nonexistent note id" do
+      it "returns 404 via rescue_from" do
+        patch "/api/v1/notes/999_999",
+              params: { title: "No-op" }.to_json,
+              headers: json_headers(user.api_token)
+
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)).to eq("error" => "not found")
+      end
+    end
   end
 
   describe "DELETE /api/v1/notes/:id" do
@@ -209,6 +233,17 @@ RSpec.describe "API::V1::Notes", type: :request do
     it "returns 401 without auth" do
       delete "/api/v1/notes/#{note.id}", headers: json_headers
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    context "when deleting a nonexistent note id" do
+      it "returns 404 via rescue_from and does not change counts" do
+        expect {
+          delete "/api/v1/notes/999_999", headers: json_headers(user.api_token)
+        }.not_to change { Note.where(user_id: user.id).count }
+
+        expect(response).to have_http_status(:not_found)
+        expect(JSON.parse(response.body)).to eq("error" => "not found")
+      end
     end
   end
 end

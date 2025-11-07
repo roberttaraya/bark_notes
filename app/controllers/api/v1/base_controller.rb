@@ -3,6 +3,8 @@ module Api
     class BaseController < ActionController::API
       before_action :authenticate!
 
+      rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+
       private
 
       def authenticate!
@@ -12,6 +14,10 @@ module Api
       end
 
       def current_user = @current_user
+
+      def render_not_found
+        render json: { error: "not found" }, status: :not_found
+      end
     end
   end
 end
